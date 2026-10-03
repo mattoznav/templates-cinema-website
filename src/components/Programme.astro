@@ -1,0 +1,192 @@
+---
+/**
+ * Live showtimes, rendered in the browser so they are always current.
+ * mode="day": a date strip and every film screening that day.
+ * mode="movie": the next screenings of one film, grouped by day.
+ */
+import type { Movie } from "../lib/types";
+import { runtime } from "../lib/format";
+
+interface Props {
+  movies: Movie[];
+  mode: "day" | "movie";
+  movie?: string;
+  days?: number;
+}
+
+const { movies, mode, movie, days = 7 } = Astro.props;
+const index = Object.fromEntries(
+  movies.map((m) => [m.slug, { title: m.title, poster: m.poster, runtime: runtime(m.runtime_minutes), genres: m.genre_names }]),
+);
+---
+
+<div class="programme" data-programme={mode} data-movie={movie} data-days={days}>
+  {mode === "day" && <div class="programme__days" role="tablist" aria-label="Pick a day" data-days-strip />}
+  <div class="programme__body" data-body aria-live="polite">
+    {
+      Array.from({ length: 3 }, () => (
+        <div class="row row--skeleton">
+          <div class="skeleton" style="aspect-ratio: 2 / 3" />
+          <div class="row__text">
+            <div class="skeleton" style="height: 24px; width: 50%" />
+            <div class="skeleton" style="height: 14px; width: 30%" />
+            <div class="row__chips">
+              <div class="skeleton" style="height: 50px; width: 88px; border-radius: 999px" />
+              <div class="skeleton" style="height: 50px; width: 88px; border-radius: 999px" />
+            </div>
+          </div>
+        </div>
+      ))
+    }
+  </div>
+  <script type="application/json" data-movies set:html={JSON.stringify(index)} />
+</div>
+
+<style is:global>
+  .programme__days {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    margin-bottom: 28px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .day {
+    flex: 0 0 auto;
+    display: grid;
+    gap: 2px;
+    min-width: 92px;
+    padding: 10px 16px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    scroll-snap-align: start;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      color 0.2s;
+  }
+
+  .day:hover {
+    border-color: var(--ink-soft);
+  }
+
+  .day[aria-selected="true"] {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--bg);
+  }
+
+  .day__weekday {
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.2;
+  }
+
+  .day__date {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    gap: 22px;
+    padding-block: 22px;
+    border-top: 1px solid var(--line);
+  }
+
+  .row:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .row__poster img {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 6px;
+    background: var(--bg-raised);
+  }
+
+  .row__text {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+  }
+
+  .row__title {
+    font-size: clamp(20px, 2vw, 26px);
+  }
+
+  .row__title a {
+    text-decoration: none;
+  }
+
+  .row__title a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-underline-offset: 4px;
+  }
+
+  .row__meta {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .row__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .chip[aria-disabled="true"] {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .programme__empty {
+    display: grid;
+    gap: 16px;
+    justify-items: start;
+    padding: 40px 0;
+    color: var(--ink-soft);
+  }
+
+  .programme__day-title {
+    font-size: 18px;
+    font-family: var(--sans);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .row--day {
+    grid-template-columns: 180px 1fr;
+    align-items: center;
+  }
+
+  .row--day .row__chips {
+    margin-top: 0;
+  }
+
+  @media (max-width: 599px) {
+    .row {
+      grid-template-columns: 72px 1fr;
+      gap: 16px;
+    }
+
+    .row--day {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+  }
+</style>
+
+<script>
+  import { initProgrammes } from "../scripts/programme";
+  initProgrammes();
+</script>

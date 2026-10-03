@@ -1,0 +1,99 @@
+---
+import Logo from "./Logo.astro";
+import type { Venue } from "../lib/types";
+
+interface Props {
+  venue: Venue;
+}
+const { venue } = Astro.props;
+---
+
+<footer class="footer">
+  <div class="wrap footer__grid">
+    <div class="footer__brand">
+      <Logo name={venue.name} />
+      <p class="muted">{venue.tagline}</p>
+    </div>
+
+    <address class="footer__contact">
+      <span>{venue.address}</span>
+      <span>{venue.postal_code} {venue.city}</span>
+      <a href={`mailto:${venue.email}`}>{venue.email}</a>
+      {venue.phone && <a href={`tel:${venue.phone.replace(/\s/g, "")}`}>{venue.phone}</a>}
+    </address>
+
+    <nav class="footer__links" aria-label="Footer">
+      <a href="/programme/">What's on</a>
+      <a href="/films/">Films</a>
+      <a href="/visit/">Visit and prices</a>
+      <a href="/account/">My tickets</a>
+    </nav>
+  </div>
+
+  <div class="wrap footer__legal muted">
+    <p>
+      Film facts from <a href="https://www.wikidata.org">Wikidata</a> (CC0). Synopses from Wikipedia, under <a
+        href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a
+      >. Posters are generated placeholders.
+    </p>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    margin-top: clamp(80px, 10vw, 140px);
+    border-top: 1px solid var(--line);
+    background: var(--bg-sunken);
+    padding-block: 56px 28px;
+    font-size: 15px;
+  }
+
+  .footer__grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 40px;
+  }
+
+  .footer__brand {
+    display: grid;
+    gap: 14px;
+    align-content: start;
+  }
+
+  .footer__contact,
+  .footer__links {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    font-style: normal;
+  }
+
+  .footer a {
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+
+  .footer a:hover {
+    color: var(--ink);
+    text-decoration: underline;
+  }
+
+  .footer__legal {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+  }
+
+  .footer__legal a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  @media (max-width: 767px) {
+    .footer__grid {
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+  }
+</style>

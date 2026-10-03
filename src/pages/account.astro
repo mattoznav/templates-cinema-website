@@ -1,0 +1,333 @@
+---
+import Base from "../layouts/Base.astro";
+import AuthForm from "../components/AuthForm.astro";
+---
+
+<Base title="My tickets">
+  <section class="wrap page">
+    <div class="signed-out" data-signed-out hidden>
+      <h1 class="page__title">My tickets</h1>
+      <div class="signed-out__form">
+        <AuthForm intro="Sign in to see your bookings and the codes to show at the door." />
+      </div>
+    </div>
+
+    <div data-signed-in hidden>
+      <div class="account__head">
+        <h1 class="page__title" data-greeting>My tickets</h1>
+        <button class="btn btn--ghost" type="button" data-sign-out>Sign out</button>
+      </div>
+      <div data-bookings aria-live="polite">
+        <div class="skeleton" style="height: 180px"></div>
+      </div>
+    </div>
+  </section>
+
+  <dialog class="qr" data-qr aria-label="Ticket code">
+    <div class="qr__code" data-qr-code></div>
+    <p class="qr__seat" data-qr-seat></p>
+    <p class="mono muted qr__text" data-qr-text></p>
+    <button class="btn btn--ghost" type="button" data-qr-close>Close</button>
+  </dialog>
+</Base>
+
+<style>
+  .page {
+    padding-top: clamp(40px, 6vw, 72px);
+  }
+
+  .page__title {
+    font-size: clamp(40px, 5vw, 68px);
+  }
+
+  .signed-out {
+    display: grid;
+    gap: 32px;
+  }
+
+  .signed-out__form {
+    max-width: 460px;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  .account__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+
+  :global(.bookings__group) {
+    font-size: 22px;
+    margin: 40px 0 16px;
+  }
+
+  :global(.booking) {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 18px 28px;
+    padding: 24px;
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    margin-bottom: 14px;
+  }
+
+  :global(.booking--past) {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+  }
+
+  :global(.booking__title) {
+    font-size: 24px;
+  }
+
+  :global(.booking__title a) {
+    text-decoration: none;
+  }
+
+  :global(.booking__when) {
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  :global(.booking__side) {
+    display: grid;
+    justify-items: end;
+    align-content: start;
+    gap: 6px;
+    text-align: right;
+  }
+
+  :global(.booking__status) {
+    font-size: 13px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--line-strong);
+  }
+
+  :global(.booking__status--confirmed) {
+    border-color: var(--success);
+    color: var(--success);
+  }
+
+  :global(.booking__status--pending) {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  :global(.booking__tickets) {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  :global(.ticket) {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: var(--bg);
+    font-family: var(--mono);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  :global(.ticket:hover) {
+    border-color: var(--accent);
+  }
+
+  :global(.ticket[data-used]) {
+    opacity: 0.5;
+  }
+
+  :global(.booking__actions) {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  :global(.bookings__empty) {
+    display: grid;
+    gap: 18px;
+    justify-items: start;
+    padding: 32px 0;
+    color: var(--ink-soft);
+  }
+
+  .qr {
+    width: min(360px, 92vw);
+    padding: 28px;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--ink);
+    color: var(--bg);
+    text-align: center;
+  }
+
+  .qr::backdrop {
+    background: rgb(5 5 7 / 0.85);
+  }
+
+  .qr__code :global(svg) {
+    width: 100%;
+    height: auto;
+  }
+
+  .qr__seat {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 26px;
+    margin-top: 12px;
+  }
+
+  .qr__text {
+    font-size: 11px;
+    word-break: break-all;
+    margin: 6px 0 18px;
+  }
+
+  .qr .btn--ghost {
+    color: var(--bg);
+    border-color: rgb(13 13 16 / 0.3);
+  }
+
+  @media (max-width: 599px) {
+    :global(.booking) {
+      grid-template-columns: 1fr;
+    }
+
+    :global(.booking__side) {
+      justify-items: start;
+      text-align: left;
+    }
+  }
+</style>
+
+<script>
+  import qrcode from "qrcode-generator";
+  import { cancelBooking, isSignedIn, me, myBookings, signOut, ApiError } from "../lib/client";
+  import { longDate, money, time } from "../lib/format";
+  import type { Booking } from "../lib/types";
+  import { esc } from "../scripts/html";
+
+  const tz = document.documentElement.dataset.tz ?? "UTC";
+  const list = document.querySelector<HTMLElement>("[data-bookings]")!;
+  const dialog = document.querySelector<HTMLDialogElement>("[data-qr]")!;
+  let bookings: Booking[] = [];
+
+  const STATUS: Record<Booking["status"], string> = {
+    confirmed: "Confirmed",
+    pending: "Waiting for payment",
+    cancelled: "Cancelled",
+    expired: "Expired",
+  };
+
+  function card(b: Booking, past: boolean): string {
+    const s = b.showtime;
+    const tickets =
+      b.status === "confirmed" && !past
+        ? `<div class="booking__tickets">${b.seats
+            .filter((x) => x.ticket)
+            .map(
+              (x) =>
+                `<button type="button" class="ticket" data-ticket="${esc(x.ticket!.code)}" data-seat="${esc(x.seat)}"${
+                  x.ticket!.checked_in_at ? " data-used" : ""
+                } aria-label="Show the code for seat ${esc(x.seat)}">${esc(x.seat)}</button>`,
+            )
+            .join("")}</div>`
+        : "";
+    const actions = [
+      b.status === "pending" && new Date(b.expires_at) > new Date()
+        ? `<a class="btn btn--primary" href="/book/?booking=${b.id}">Complete payment</a>`
+        : "",
+      b.can_cancel && b.status === "confirmed" ? `<button class="btn btn--ghost" type="button" data-cancel="${b.id}">Cancel and refund</button>` : "",
+    ].join("");
+    return `<article class="booking${past ? " booking--past" : ""}">
+      <div>
+        <h3 class="booking__title"><a href="/films/${esc(s.movie.slug)}/">${esc(s.movie.title)}</a></h3>
+        <p class="booking__when">${esc(longDate(s.starts_at, tz))}, ${time(s.starts_at, tz)}. ${esc(s.hall.name)}. Seats ${esc(
+          b.seats.map((x) => x.seat).join(", "),
+        )}.</p>
+      </div>
+      <div class="booking__side">
+        <span class="booking__status booking__status--${b.status}">${STATUS[b.status]}</span>
+        <span class="mono">${money(b.total, b.currency)}</span>
+        <span class="mono muted">${esc(b.reference)}</span>
+      </div>
+      ${tickets}
+      ${actions ? `<div class="booking__actions">${actions}</div>` : ""}
+    </article>`;
+  }
+
+  function render() {
+    const now = Date.now();
+    // Unpaid holds that ran out add nothing: hide them
+    const visible = bookings.filter((b) => b.status !== "expired");
+    const upcoming = visible.filter((b) => new Date(b.showtime.starts_at).getTime() > now && b.status !== "cancelled");
+    const past = visible.filter((b) => !upcoming.includes(b));
+    upcoming.sort((a, b) => a.showtime.starts_at.localeCompare(b.showtime.starts_at));
+
+    list.innerHTML = upcoming.length
+      ? `<h2 class="bookings__group">Coming up</h2>${upcoming.map((b) => card(b, false)).join("")}`
+      : `<div class="bookings__empty"><p>No upcoming bookings.</p><a class="btn btn--primary" href="/programme/">See what's on</a></div>`;
+    if (past.length) list.innerHTML += `<h2 class="bookings__group">Past and cancelled</h2>${past.map((b) => card(b, true)).join("")}`;
+  }
+
+  async function load() {
+    const signedIn = isSignedIn();
+    document.querySelector<HTMLElement>("[data-signed-out]")!.hidden = signedIn;
+    document.querySelector<HTMLElement>("[data-signed-in]")!.hidden = !signedIn;
+    if (!signedIn) return;
+    try {
+      const [user, items] = await Promise.all([me(), myBookings()]);
+      if (user.first_name) document.querySelector("[data-greeting]")!.textContent = `${user.first_name}'s tickets`;
+      bookings = items;
+      render();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) return load();
+      list.innerHTML = `<div class="bookings__empty"><p>Your bookings could not be loaded. Try again in a moment.</p></div>`;
+    }
+  }
+
+  list.addEventListener("click", async (e) => {
+    const target = e.target as HTMLElement;
+    const ticket = target.closest<HTMLElement>("[data-ticket]");
+    if (ticket) {
+      const qr = qrcode(0, "M");
+      qr.addData(ticket.dataset.ticket!);
+      qr.make();
+      dialog.querySelector("[data-qr-code]")!.innerHTML = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+      dialog.querySelector("[data-qr-seat]")!.textContent = `Seat ${ticket.dataset.seat}${ticket.hasAttribute("data-used") ? ", already used" : ""}`;
+      dialog.querySelector("[data-qr-text]")!.textContent = ticket.dataset.ticket!;
+      dialog.showModal();
+      return;
+    }
+    const cancel = target.closest<HTMLButtonElement>("[data-cancel]");
+    if (cancel && confirm("Cancel this booking? The full amount goes back to your card.")) {
+      cancel.disabled = true;
+      try {
+        const updated = await cancelBooking(Number(cancel.dataset.cancel));
+        bookings = bookings.map((b) => (b.id === updated.id ? updated : b));
+        render();
+      } catch (err) {
+        cancel.disabled = false;
+        alert(err instanceof ApiError ? err.message : "The booking could not be cancelled. Try again.");
+      }
+    }
+  });
+
+  dialog.querySelector("[data-qr-close]")!.addEventListener("click", () => dialog.close());
+  document.querySelector("[data-sign-out]")!.addEventListener("click", () => signOut());
+  window.addEventListener("auth-change", load);
+  load();
+</script>

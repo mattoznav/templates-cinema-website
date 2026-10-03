@@ -1,0 +1,24 @@
+---
+import Base from "../layouts/Base.astro";
+---
+
+<Base title="Page not found">
+  <section class="wrap missing">
+    <h1>This reel is missing.</h1>
+    <p class="muted">The page you were looking for does not exist or has moved.</p>
+    <a class="btn btn--primary" href="/programme/">See what's on</a>
+  </section>
+</Base>
+
+<style>
+  .missing {
+    display: grid;
+    gap: 20px;
+    justify-items: start;
+    padding-top: clamp(64px, 10vw, 140px);
+  }
+
+  h1 {
+    font-size: clamp(40px, 6vw, 80px);
+  }
+</style>

@@ -1,0 +1,134 @@
+---
+import Logo from "./Logo.astro";
+import Icon from "./Icon.astro";
+import type { Venue } from "../lib/types";
+
+interface Props {
+  venue: Venue;
+}
+const { venue } = Astro.props;
+const path = Astro.url.pathname;
+const links = [
+  { href: "/programme/", label: "What's on" },
+  { href: "/films/", label: "Films" },
+  { href: "/visit/", label: "Visit" },
+];
+---
+
+<header class="header">
+  <div class="wrap header__inner">
+    <a href="/" class="header__brand" aria-label={`${venue.name}, home`}>
+      <Logo name={venue.name} />
+    </a>
+
+    <nav class="header__nav" aria-label="Main">
+      {
+        links.map((l) => (
+          <a href={l.href} aria-current={path.startsWith(l.href) ? "page" : undefined}>
+            {l.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    <a href="/account/" class="header__account" data-account-link aria-current={path.startsWith("/account") ? "page" : undefined}>
+      <Icon name="ticket" size={18} />
+      <span data-account-label>Sign in</span>
+    </a>
+  </div>
+</header>
+
+<style>
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-header);
+    background: rgb(13 13 16 / 0.82);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .header__inner {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    height: var(--header-h);
+  }
+
+  .header__brand {
+    text-decoration: none;
+  }
+
+  .header__nav {
+    display: flex;
+    gap: 28px;
+    margin-right: auto;
+  }
+
+  .header__nav a,
+  .header__account {
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    transition: color 0.2s;
+  }
+
+  .header__nav a:hover,
+  .header__nav a[aria-current="page"],
+  .header__account:hover {
+    color: var(--ink);
+  }
+
+  .header__nav a[aria-current="page"] {
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 8px;
+  }
+
+  .header__account {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  /* Phones: the nav moves to its own scrollable row under the brand */
+  @media (max-width: 719px) {
+    .header__inner {
+      flex-wrap: wrap;
+      height: auto;
+      row-gap: 0;
+      padding-top: 12px;
+    }
+
+    .header__brand {
+      margin-right: auto;
+    }
+
+    .header__nav {
+      order: 3;
+      width: 100%;
+      gap: 22px;
+      overflow-x: auto;
+      padding: 10px 0 12px;
+    }
+  }
+</style>
+
+<script>
+  import { isSignedIn } from "../lib/client";
+
+  // The account link says what it will do: sign in, or show the tickets
+  const label = document.querySelector<HTMLElement>("[data-account-label]");
+  const update = () => {
+    if (label) label.textContent = isSignedIn() ? "My tickets" : "Sign in";
+  };
+  update();
+  window.addEventListener("auth-change", update);
+</script>

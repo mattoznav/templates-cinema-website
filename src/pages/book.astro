@@ -1,0 +1,445 @@
+---
+/**
+ * Booking flow, entirely live: /book/?showtime=<id>, or /book/?booking=<id>
+ * to resume paying for a booking already holding seats.
+ */
+import Base from "../layouts/Base.astro";
+import AuthForm from "../components/AuthForm.astro";
+import Icon from "../components/Icon.astro";
+---
+
+<Base title="Get tickets">
+  <div class="wrap book" data-book>
+    <header class="book__head" data-head>
+      <a class="book__back" href="/programme/" data-back><Icon name="arrow-left" size={16} /> Back</a>
+      <div class="skeleton" style="height: 44px; width: min(420px, 80%); margin-top: 14px"></div>
+      <div class="skeleton" style="height: 18px; width: 260px; margin-top: 12px"></div>
+    </header>
+
+    <div class="book__grid">
+      <section class="map" aria-label="Seat map">
+        <div class="map__screen" aria-hidden="true"><span>Screen</span></div>
+        <div class="map__seats" data-seats>
+          <div class="skeleton" style="height: 320px"></div>
+        </div>
+        <ul class="map__legend" aria-label="Legend">
+          <li><span class="seat seat--legend"></span> Available</li>
+          <li><span class="seat seat--legend seat--premium"></span> Premium</li>
+          <li><span class="seat seat--legend" aria-pressed="true"></span> Your pick</li>
+          <li><span class="seat seat--legend" data-status="sold"></span> Taken</li>
+          <li><span class="seat seat--legend seat--wheelchair"><Icon name="wheelchair" size={12} /></span> Wheelchair space</li>
+        </ul>
+      </section>
+
+      <aside class="panel" aria-live="polite">
+        <!-- Step 1: seats -->
+        <div class="step" data-step="seats">
+          <h2 class="panel__title">Your seats</h2>
+          <p class="muted" data-empty-pick>Pick up to 10 seats on the map.</p>
+          <ul class="picks" data-picks></ul>
+          <div class="panel__total" data-total hidden><span>Total</span><strong class="mono" data-total-value></strong></div>
+          <p class="form-error" data-seats-error role="alert" hidden></p>
+          <button class="btn btn--primary panel__cta" type="button" data-continue disabled>Continue</button>
+        </div>
+
+        <!-- Step 2: account -->
+        <div class="step" data-step="account" hidden>
+          <h2 class="panel__title">Sign in to book</h2>
+          <AuthForm intro="Your tickets are saved to your account, so you can find them on your phone at the door." />
+          <button class="panel__link" type="button" data-to-seats>Change seats</button>
+        </div>
+
+        <!-- Step 3: payment -->
+        <div class="step" data-step="pay" hidden>
+          <h2 class="panel__title">Payment</h2>
+          <p class="hold" data-hold><Icon name="clock" size={18} /> <span>Seats held for <strong class="mono" data-countdown>10:00</strong></span></p>
+          <ul class="picks picks--summary" data-summary></ul>
+          <div class="panel__total"><span>Total</span><strong class="mono" data-pay-total></strong></div>
+
+          <div class="fake" data-fake hidden>
+            <p class="fake__note">
+              Demo payment. No card is charged and no money moves: this cinema runs on the template's fake payment provider.
+            </p>
+            <button class="btn btn--primary panel__cta" type="button" data-fake-pay>Pay</button>
+            <button class="panel__link" type="button" data-fake-decline>Simulate a declined card</button>
+          </div>
+
+          <form class="stripe" data-stripe hidden>
+            <div data-stripe-element></div>
+            <button class="btn btn--primary panel__cta" type="submit" data-stripe-pay>Pay</button>
+          </form>
+
+          <p class="form-error" data-pay-error role="alert" hidden></p>
+          <button class="panel__link" type="button" data-cancel-hold>Cancel and choose other seats</button>
+        </div>
+
+        <!-- Waiting for the provider to confirm -->
+        <div class="step" data-step="confirming" hidden>
+          <h2 class="panel__title">Confirming your payment</h2>
+          <div class="skeleton" style="height: 64px"></div>
+          <p class="muted">This takes a few seconds. Please keep this page open.</p>
+        </div>
+
+        <!-- Done -->
+        <div class="step" data-step="done" hidden>
+          <span class="done__icon"><Icon name="check" size={28} /></span>
+          <h2 class="panel__title">You're booked</h2>
+          <p>Booking reference <strong class="mono" data-reference></strong></p>
+          <p class="muted">Show the tickets in your account at the door. Each seat has its own code.</p>
+          <a class="btn btn--primary panel__cta" href="/account/">My tickets</a>
+        </div>
+
+        <!-- Something that cannot be fixed on this page -->
+        <div class="step" data-step="error" hidden>
+          <h2 class="panel__title" data-error-title>Booking unavailable</h2>
+          <p class="muted" data-error-text></p>
+          <a class="btn btn--ghost panel__cta" href="/programme/">See what's on</a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .book {
+    padding-top: clamp(28px, 4vw, 48px);
+  }
+
+  .book__head :global(.book__back) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-size: 15px;
+  }
+
+  .book__head :global(.book__back:hover) {
+    color: var(--ink);
+  }
+
+  .book__head :global(.book__title) {
+    font-size: clamp(32px, 4vw, 52px);
+    margin-top: 14px;
+  }
+
+  .book__head :global(.book__when) {
+    margin-top: 8px;
+    color: var(--ink-soft);
+  }
+
+  .book__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: clamp(28px, 4vw, 56px);
+    align-items: start;
+    margin-top: 36px;
+  }
+
+  /* Seat map */
+  .map {
+    min-width: 0;
+    padding: clamp(18px, 3vw, 36px);
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+  }
+
+  .map__screen {
+    position: relative;
+    height: 36px;
+    margin: 0 8% 36px;
+    border-top: 3px solid var(--ink-soft);
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    text-align: center;
+  }
+
+  .map__screen::after {
+    content: "";
+    position: absolute;
+    inset: -3px 0 auto;
+    height: 60px;
+    background: radial-gradient(60% 100% at 50% 0%, rgb(242 240 234 / 0.12), transparent);
+    pointer-events: none;
+  }
+
+  .map__screen span {
+    position: relative;
+    top: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .map__seats {
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+
+  .map__seats :global(.map__row) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: max-content;
+    min-width: 100%;
+    margin-bottom: 6px;
+  }
+
+  .map__seats :global(.map__label) {
+    width: 18px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .map__seats :global(.map__aisle) {
+    width: 14px;
+  }
+
+  .seat,
+  .map__seats :global(.seat) {
+    display: inline-grid;
+    place-items: center;
+    width: 26px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px 6px 4px 4px;
+    background: #24242c;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s,
+      transform 0.2s var(--ease);
+  }
+
+  .map__seats :global(.seat:hover:not([disabled])) {
+    border-color: var(--ink);
+  }
+
+  .seat--premium,
+  .map__seats :global(.seat--premium) {
+    border-color: rgb(255 207 74 / 0.5);
+  }
+
+  .seat[aria-pressed="true"],
+  .map__seats :global(.seat[aria-pressed="true"]) {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+    transform: translateY(-2px);
+  }
+
+  .seat[data-status="sold"],
+  .map__seats :global(.seat[data-status="sold"]),
+  .map__seats :global(.seat[data-status="held"]) {
+    background: transparent;
+    border-color: var(--line);
+    background-image: linear-gradient(135deg, transparent 45%, var(--line-strong) 45%, var(--line-strong) 55%, transparent 55%);
+    cursor: not-allowed;
+  }
+
+  .map__seats :global(.seat svg),
+  .seat svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .seat--legend {
+    width: 18px;
+    height: 16px;
+    cursor: default;
+    vertical-align: middle;
+  }
+
+  .map__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 22px;
+    margin: 28px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .map__legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Side panel */
+  .panel {
+    position: sticky;
+    top: calc(var(--header-h) + 20px);
+    padding: 26px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg-sunken);
+  }
+
+  .step {
+    display: grid;
+    gap: 16px;
+  }
+
+  .step[hidden] {
+    display: none;
+  }
+
+  .panel__title {
+    font-size: 24px;
+  }
+
+  .panel__cta {
+    width: 100%;
+  }
+
+  .panel__link {
+    justify-self: center;
+    border: 0;
+    background: none;
+    color: var(--ink-soft);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .panel__total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-size: 17px;
+  }
+
+  .panel__total[hidden] {
+    display: none;
+  }
+
+  .picks {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .picks :global(li) {
+    display: grid;
+    grid-template-columns: 52px 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .picks--summary :global(li) {
+    grid-template-columns: 52px 1fr auto;
+  }
+
+  .picks :global(.pick__seat) {
+    font-family: var(--mono);
+    font-weight: 600;
+  }
+
+  .picks :global(select) {
+    min-height: 36px;
+    padding: 0 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    background: var(--bg-raised);
+  }
+
+  .picks :global(.pick__remove) {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .picks :global(.pick__remove:hover) {
+    color: var(--ink);
+    background: var(--bg-raised);
+  }
+
+  .hold {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--accent-soft);
+    color: var(--ink);
+    font-size: 14px;
+  }
+
+  .hold[data-urgent] {
+    background: rgb(255 122 107 / 0.15);
+  }
+
+  .fake,
+  .stripe {
+    display: grid;
+    gap: 12px;
+  }
+
+  .fake[hidden],
+  .stripe[hidden] {
+    display: none;
+  }
+
+  .fake__note {
+    padding: 12px 14px;
+    border: 1px dashed var(--line-strong);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  .done__icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  @media (max-width: 959px) {
+    .book__grid {
+      grid-template-columns: 1fr;
+    }
+
+    .panel {
+      position: static;
+    }
+  }
+
+  @media (max-width: 479px) {
+    .map__seats :global(.seat) {
+      width: 22px;
+      height: 20px;
+    }
+
+    .map__seats :global(.map__row) {
+      gap: 4px;
+    }
+  }
+</style>
+
+<script>
+  import { initBooking } from "../scripts/book";
+  initBooking();
+</script>

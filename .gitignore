@@ -26,3 +26,8 @@ service-account*.json
 
 # Agent local state
 .claude/settings.local.json
+
+# Node and Astro
+node_modules/
+dist/
+.astro/

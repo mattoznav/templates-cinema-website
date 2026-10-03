@@ -1,0 +1,76 @@
+---
+/**
+ * One dialog for every "Watch trailer" button on the page ([data-trailer]).
+ * The YouTube player loads only when asked, from the privacy-enhanced domain.
+ */
+import Icon from "./Icon.astro";
+---
+
+<dialog class="trailer" data-trailer-dialog aria-label="Trailer">
+  <button class="trailer__close" type="button" data-trailer-close aria-label="Close trailer">
+    <Icon name="x" size={22} />
+  </button>
+  <div class="trailer__frame" data-trailer-frame></div>
+</dialog>
+
+<style>
+  .trailer {
+    width: min(1100px, 94vw);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius);
+    background: #000;
+    overflow: visible;
+  }
+
+  .trailer::backdrop {
+    background: rgb(5 5 7 / 0.88);
+    backdrop-filter: blur(6px);
+  }
+
+  .trailer__frame {
+    aspect-ratio: 16 / 9;
+  }
+
+  .trailer__frame :global(iframe) {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: var(--radius);
+  }
+
+  .trailer__close {
+    position: absolute;
+    top: -52px;
+    right: 0;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: var(--bg-raised);
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  const dialog = document.querySelector<HTMLDialogElement>("[data-trailer-dialog]")!;
+  const frame = dialog.querySelector<HTMLElement>("[data-trailer-frame]")!;
+
+  document.addEventListener("click", (e) => {
+    const trigger = (e.target as HTMLElement).closest<HTMLElement>("[data-trailer]");
+    if (!trigger) return;
+    const id = encodeURIComponent(trigger.dataset.trailer!);
+    frame.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" title="Trailer" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+    dialog.showModal();
+  });
+
+  const close = () => dialog.close();
+  dialog.querySelector("[data-trailer-close]")!.addEventListener("click", close);
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) close();
+  });
+  // Stop the video when the dialog closes
+  dialog.addEventListener("close", () => (frame.innerHTML = ""));
+</script>

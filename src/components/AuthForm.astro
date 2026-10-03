@@ -1,0 +1,103 @@
+---
+/**
+ * Sign in or create an account. Handled by scripts/auth-form.ts, which fires
+ * the "auth-change" event on success so the page can move on.
+ */
+interface Props {
+  intro?: string;
+}
+const { intro } = Astro.props;
+---
+
+<div class="auth" data-auth-form>
+  {intro && <p class="auth__intro">{intro}</p>}
+  <div class="auth__tabs" role="tablist" aria-label="Account">
+    <button type="button" role="tab" aria-selected="true" data-auth-tab="signin">Sign in</button>
+    <button type="button" role="tab" aria-selected="false" data-auth-tab="register">Create account</button>
+  </div>
+
+  <form class="auth__form" data-mode="signin" novalidate>
+    <div class="field auth__register">
+      <label for="auth-first">First name</label>
+      <input id="auth-first" name="first_name" autocomplete="given-name" />
+    </div>
+    <div class="field auth__register">
+      <label for="auth-last">Last name</label>
+      <input id="auth-last" name="last_name" autocomplete="family-name" />
+    </div>
+    <div class="field">
+      <label for="auth-email">Email</label>
+      <input id="auth-email" name="email" type="email" autocomplete="email" required />
+    </div>
+    <div class="field">
+      <label for="auth-password">Password</label>
+      <input id="auth-password" name="password" type="password" autocomplete="current-password" required minlength="8" />
+      <p class="auth__hint muted auth__register">At least 8 characters.</p>
+    </div>
+    <p class="form-error" data-auth-error role="alert" hidden></p>
+    <button class="btn btn--primary auth__submit" type="submit" data-auth-submit>Sign in</button>
+  </form>
+</div>
+
+<style>
+  .auth {
+    display: grid;
+    gap: 18px;
+  }
+
+  .auth__intro {
+    color: var(--ink-soft);
+  }
+
+  .auth__tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 4px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+  }
+
+  .auth__tabs button {
+    min-height: 38px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink-soft);
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .auth__tabs button[aria-selected="true"] {
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .auth__form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .auth__form > .field:not(.auth__register),
+  .auth__form > .form-error,
+  .auth__submit {
+    grid-column: 1 / -1;
+  }
+
+  .auth__form[data-mode="signin"] .auth__register {
+    display: none;
+  }
+
+  .auth__hint {
+    font-size: 13px;
+  }
+
+  .auth__submit {
+    margin-top: 6px;
+  }
+</style>
+
+<script>
+  import { initAuthForms } from "../scripts/auth-form";
+  initAuthForms();
+</script>

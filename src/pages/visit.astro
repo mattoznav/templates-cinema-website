@@ -1,0 +1,164 @@
+---
+import Base from "../layouts/Base.astro";
+import Icon from "../components/Icon.astro";
+import { catalog } from "../lib/catalog";
+import { money } from "../lib/format";
+
+const { venue, halls, seatTypes, ticketTypes } = await catalog();
+const cur = venue.currency;
+const extras = seatTypes.filter((s) => Number(s.surcharge) > 0);
+const discounts = ticketTypes.filter((t) => Number(t.price_delta) !== 0);
+---
+
+<Base title="Visit and prices" description={`How to find ${venue.name}, our screens and ticket prices.`}>
+  <section class="wrap page">
+    <h1 class="page__title">Visit {venue.name}</h1>
+
+    <div class="visit">
+      <div class="visit__where">
+        <h2 class="visit__h2">Find us</h2>
+        <address>
+          <span><Icon name="map-pin" size={18} /> {venue.address}, {venue.postal_code} {venue.city}</span>
+          <a href={`mailto:${venue.email}`}><Icon name="envelope" size={18} /> {venue.email}</a>
+          {venue.phone && <a href={`tel:${venue.phone.replace(/\s/g, "")}`}><Icon name="phone" size={18} /> {venue.phone}</a>}
+        </address>
+        <p class="muted">
+          Doors open 30 minutes before the first show. Every screen has wheelchair spaces in the front row, bookable
+          online like any other seat.
+        </p>
+      </div>
+
+      <div class="visit__prices">
+        <h2 class="visit__h2">Ticket prices</h2>
+        <table class="prices">
+          <caption class="sr-only">Evening adult price per screen</caption>
+          <thead>
+            <tr><th scope="col">Screen</th><th scope="col">Format</th><th scope="col">Seats</th><th scope="col">Adult, evening</th></tr>
+          </thead>
+          <tbody>
+            {
+              halls.map((h) => (
+                <tr>
+                  <th scope="row">{h.name}</th>
+                  <td>{h.format}</td>
+                  <td class="mono">{h.capacity}</td>
+                  <td class="mono">{money(h.base_price, cur)}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+
+        <ul class="notes">
+          {
+            discounts.map((t) => (
+              <li>
+                <strong>{t.name}</strong>
+                {t.description && ` (${t.description.toLowerCase()})`}: {money(Math.abs(Number(t.price_delta)), cur)} less.
+              </li>
+            ))
+          }
+          {
+            extras.map((s) => (
+              <li>
+                <strong>{s.name} seats</strong>: {money(s.surcharge, cur)} more.
+              </li>
+            ))
+          }
+          <li>Shows starting before 5pm cost a little less: the exact price is shown when you pick a time.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .page {
+    padding-top: clamp(40px, 6vw, 72px);
+  }
+
+  .page__title {
+    font-size: clamp(40px, 5vw, 68px);
+    margin-bottom: 40px;
+  }
+
+  .visit {
+    display: grid;
+    grid-template-columns: 2fr 3fr;
+    gap: clamp(40px, 6vw, 96px);
+  }
+
+  .visit__h2 {
+    font-size: 26px;
+    margin-bottom: 20px;
+  }
+
+  .visit__where {
+    display: grid;
+    gap: 24px;
+    align-content: start;
+  }
+
+  address {
+    display: grid;
+    gap: 12px;
+    font-style: normal;
+  }
+
+  address > * {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  address a:hover {
+    color: var(--accent);
+  }
+
+  .prices {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .prices th,
+  .prices td {
+    padding: 14px 12px 14px 0;
+    text-align: left;
+  }
+
+  .prices thead th {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    border-bottom: 1px solid var(--line-strong);
+  }
+
+  .prices tbody th {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 18px;
+  }
+
+  .notes {
+    display: grid;
+    gap: 8px;
+    margin: 28px 0 0;
+    padding: 20px 24px;
+    list-style: none;
+    border-radius: var(--radius);
+    background: var(--bg-raised);
+    color: var(--ink-soft);
+  }
+
+  .notes strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  @media (max-width: 899px) {
+    .visit {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

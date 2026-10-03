@@ -1,0 +1,149 @@
+---
+import Base from "../../layouts/Base.astro";
+import PosterCard from "../../components/PosterCard.astro";
+import { catalog } from "../../lib/catalog";
+
+const { movies, genres } = await catalog();
+const showing = movies.filter((m) => m.status === "now_showing");
+const soon = movies.filter((m) => m.status === "coming_soon");
+// Only offer genres that at least one film on the page has
+const used = new Set(movies.flatMap((m) => m.genres));
+const filters = genres.filter((g) => used.has(g.slug));
+---
+
+<Base title="Films" description="Every film in cinemas now, and the ones arriving soon.">
+  <section class="wrap page">
+    <h1 class="page__title">Films</h1>
+
+    <div class="filters" role="group" aria-label="Filter by genre" data-filters>
+      <button type="button" class="filter" aria-pressed="true" data-genre="">All</button>
+      {
+        filters.map((g) => (
+          <button type="button" class="filter" aria-pressed="false" data-genre={g.slug}>
+            {g.name}
+          </button>
+        ))
+      }
+    </div>
+
+    <h2 class="group__title">In cinemas now</h2>
+    <div class="grid" data-grid>
+      {showing.map((m, i) => <PosterCard movie={m} index={i} />)}
+    </div>
+
+    {
+      soon.length > 0 && (
+        <>
+          <h2 class="group__title">Coming soon</h2>
+          <div class="grid" data-grid>
+            {soon.map((m, i) => (
+              <PosterCard movie={m} index={i} />
+            ))}
+          </div>
+        </>
+      )
+    }
+
+    <p class="empty muted" data-empty hidden>No films in this genre right now.</p>
+  </section>
+</Base>
+
+<style>
+  .page {
+    padding-top: clamp(40px, 6vw, 72px);
+  }
+
+  .page__title {
+    font-size: clamp(40px, 5vw, 68px);
+    margin-bottom: 24px;
+  }
+
+  .filters {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+
+  .filter {
+    flex: 0 0 auto;
+    padding: 8px 16px;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    background: transparent;
+    font-size: 14px;
+    cursor: pointer;
+    transition:
+      background-color 0.2s,
+      color 0.2s,
+      border-color 0.2s;
+  }
+
+  .filter:hover {
+    border-color: var(--ink-soft);
+  }
+
+  .filter[aria-pressed="true"] {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--bg);
+  }
+
+  .group__title {
+    font-size: clamp(24px, 2.4vw, 32px);
+    margin: 48px 0 20px;
+  }
+
+  .group__title[hidden],
+  .grid[hidden] {
+    display: none;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 32px 20px;
+  }
+
+  .empty {
+    margin-top: 40px;
+  }
+
+  @media (max-width: 479px) {
+    .grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 24px 14px;
+    }
+  }
+</style>
+
+<script>
+  const buttons = document.querySelectorAll<HTMLButtonElement>("[data-filters] .filter");
+  const grids = document.querySelectorAll<HTMLElement>("[data-grid]");
+  const empty = document.querySelector<HTMLElement>("[data-empty]")!;
+
+  buttons.forEach((button) =>
+    button.addEventListener("click", () => {
+      const genre = button.dataset.genre!;
+      buttons.forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+      let shown = 0;
+      grids.forEach((grid) => {
+        let inGrid = 0;
+        grid.querySelectorAll<HTMLElement>("[data-genres]").forEach((card) => {
+          const match = !genre || card.dataset.genres!.split(" ").includes(genre);
+          card.hidden = !match;
+          if (match) {
+            inGrid++;
+            card.classList.add("is-in");
+          }
+        });
+        // Hide a whole group (and its heading) when nothing in it matches
+        grid.hidden = inGrid === 0;
+        const heading = grid.previousElementSibling as HTMLElement | null;
+        if (heading?.classList.contains("group__title")) heading.hidden = inGrid === 0;
+        shown += inGrid;
+      });
+      empty.hidden = shown > 0;
+    }),
+  );
+</script>

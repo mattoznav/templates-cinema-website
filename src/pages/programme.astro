@@ -1,0 +1,25 @@
+---
+import Base from "../layouts/Base.astro";
+import Programme from "../components/Programme.astro";
+import { catalog } from "../lib/catalog";
+
+const { movies } = await catalog();
+---
+
+<Base title="What's on" description="Showtimes for the next two weeks. Pick a day, then a time.">
+  <section class="wrap page">
+    <h1 class="page__title">What's on</h1>
+    <Programme movies={movies} mode="day" days={14} />
+  </section>
+</Base>
+
+<style>
+  .page {
+    padding-top: clamp(40px, 6vw, 72px);
+  }
+
+  .page__title {
+    font-size: clamp(40px, 5vw, 68px);
+    margin-bottom: 28px;
+  }
+</style>
