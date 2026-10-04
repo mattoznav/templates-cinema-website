@@ -4,6 +4,11 @@ The public website of the cinema: programme, film pages, seat selection, payment
 
 Astro, no UI framework. Part of the [`templates-cinema`](https://github.com/mattoznav/templates-cinema) template, inside the [`templates`](https://github.com/mattoznav/templates) collection.
 
+## Requirements
+
+- Node.js 22.12 or newer and npm
+- The backend running locally (see its README)
+
 ## Quick start
 
 The website needs the [backend](https://github.com/mattoznav/templates-cinema-backend) running, by default on `http://localhost:8000`.
@@ -15,6 +20,8 @@ npm run dev
 ```
 
 Open `http://localhost:4321`.
+
+Check types and templates with `npm run check`; `npm run build` produces the static site in `dist/`.
 
 ## What is static and what is live
 
