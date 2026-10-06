@@ -64,3 +64,7 @@ The website follows whatever the backend uses:
 ## Credits
 
 Film facts come from Wikidata (CC0) and synopses from Wikipedia (CC BY-SA 4.0): each film page links its source. Posters are generated placeholders served by the backend. Icons are [Phosphor](https://phosphoricons.com) (MIT).
+
+## License
+
+The code is released under the [MIT License](LICENSE). Movie synopses shown on the site come from Wikipedia and stay under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
