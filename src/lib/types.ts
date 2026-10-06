@@ -122,3 +122,21 @@ export interface Paginated<T> {
   next: string | null;
   results: T[];
 }
+
+/**
+ * Showcase mode: the backend data the static demo needs, captured at build
+ * time (see src/pages/showcase/ and src/lib/showcase.ts).
+ */
+export interface Snapshot {
+  /** "YYYY-MM-DD" in the venue's timezone: the day the programme was captured */
+  taken_on: string;
+  timezone: string;
+  currency: string;
+  ticket_types: SeatMap["ticket_types"];
+  /** Seat type code -> surcharge */
+  seat_types: Record<string, string>;
+  /** Seat layout of each hall, stored once: [id, row, number, label, seat type] */
+  halls: Record<string, { rows: number; seats_per_row: number; seats: [number, string, number, string, string][] }>;
+  /** Every showtime of the schedule window, with the seats already taken when captured */
+  showtimes: (Showtime & { taken: Record<string, "held" | "sold"> })[];
+}

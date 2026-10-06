@@ -2,6 +2,7 @@ import { showtimesFor, showtimesOn } from "../lib/client";
 import { audio, dayKey, longDate, time, upcomingDays } from "../lib/format";
 import type { Showtime } from "../lib/types";
 import { esc } from "./html";
+import { withBase } from "../lib/paths";
 
 interface MovieInfo {
   title: string;
@@ -17,7 +18,7 @@ function chip(s: Showtime): string {
     .filter(Boolean)
     .join(", ");
   const label = `${time(s.starts_at, tz())}, ${s.hall_name}, ${audio(s.language, s.subtitles)}`;
-  return `<a class="chip" href="/book/?showtime=${s.id}" aria-label="Get tickets for ${esc(s.movie_title)} at ${esc(label)}"${
+  return `<a class="chip" href="${withBase(`/book/?showtime=${s.id}`)}" aria-label="Get tickets for ${esc(s.movie_title)} at ${esc(label)}"${
     s.is_bookable ? "" : ' aria-disabled="true" tabindex="-1"'
   }>
     <span class="chip__time">${time(s.starts_at, tz())}</span>
@@ -29,11 +30,11 @@ function movieRow(slug: string, info: MovieInfo | undefined, shows: Showtime[]):
   const title = info?.title ?? shows[0].movie_title;
   const meta = info ? [info.runtime, info.genres.slice(0, 2).join(", ")].filter(Boolean).join("  /  ") : "";
   return `<article class="row">
-    <a class="row__poster" href="/films/${slug}/" tabindex="-1" aria-hidden="true">
+    <a class="row__poster" href="${withBase(`/films/${slug}/`)}" tabindex="-1" aria-hidden="true">
       ${info ? `<img src="${esc(info.poster)}" alt="" loading="lazy" width="92" height="138" />` : ""}
     </a>
     <div class="row__text">
-      <h3 class="row__title"><a href="/films/${slug}/">${esc(title)}</a></h3>
+      <h3 class="row__title"><a href="${withBase(`/films/${slug}/`)}">${esc(title)}</a></h3>
       <p class="row__meta">${esc(meta)}</p>
       <div class="row__chips">${shows.map(chip).join("")}</div>
     </div>

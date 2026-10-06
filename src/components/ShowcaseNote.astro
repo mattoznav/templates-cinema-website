@@ -1,0 +1,68 @@
+---
+/**
+ * Showcase mode only: tells visitors the demo runs without a backend.
+ * The styles are inline so normal builds ship none of this.
+ */
+---
+
+<aside class="showcase-note" aria-label="About this demo">
+  <div class="wrap showcase-note__inner">
+    <p><strong>Static showcase.</strong> Accounts and bookings are kept only in this browser, and no payment is taken.</p>
+    <a href="https://github.com/mattoznav/templates-cinema">Source on GitHub</a>
+  </div>
+</aside>
+
+<style is:inline>
+  .showcase-note {
+    background: var(--bg-sunken);
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .showcase-note__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 16px;
+    padding-block: 8px;
+  }
+
+  .showcase-note p {
+    margin: 0;
+  }
+
+  .showcase-note strong {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .showcase-note a {
+    color: var(--ink-soft);
+    white-space: nowrap;
+    text-underline-offset: 3px;
+  }
+
+  .showcase-note a:hover {
+    color: var(--ink);
+  }
+
+  /* Phones: one short paragraph, link included, to keep the bar slim */
+  @media (max-width: 599px) {
+    .showcase-note {
+      font-size: 12px;
+    }
+
+    .showcase-note__inner {
+      display: block;
+      padding-block: 6px;
+    }
+
+    .showcase-note p {
+      display: inline;
+      margin-right: 6px;
+    }
+  }
+</style>

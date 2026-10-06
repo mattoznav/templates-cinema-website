@@ -1,0 +1,79 @@
+# Builds the static showcase and publishes it on GitHub Pages: at every push to
+# main, and once a day so the captured programme stays fresh.
+#
+# GitHub Pages only serves files, so the backend runs inside this job: the build
+# reads the catalogue from it and captures showtimes and seat maps (showcase
+# mode, see the README). The published site never talks to a server.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: mattoznav/templates-cinema-backend
+          path: backend
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Start the backend
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt
+          # Demo settings: SQLite rebuilt from data/*.csv, no admin user, fake payments
+          cp .env.example .env
+          python manage.py bootstrap
+          python manage.py runserver 8000 > ../backend.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8000/api/health/ > /dev/null && exit 0
+            sleep 1
+          done
+          echo "The backend did not start:"
+          cat ../backend.log
+          exit 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - id: pages
+        uses: actions/configure-pages@v5
+      - run: npm ci
+      - run: npm run build
+        env:
+          PUBLIC_API_URL: http://localhost:8000/api
+          PUBLIC_SHOWCASE: "true"
+          SITE_URL: ${{ steps.pages.outputs.origin }}
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

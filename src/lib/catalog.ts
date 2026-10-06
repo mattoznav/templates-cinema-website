@@ -1,20 +1,23 @@
 /**
  * Build-time data. Pages that rarely change (films, venue, prices) are
  * rendered once from the API; showtimes and seats are fetched live in the
- * browser instead (see src/lib/client.ts).
+ * browser instead (see src/lib/client.ts). In showcase mode the browser has no
+ * backend, so src/lib/snapshot.ts also captures those at build time.
  */
+import { withBase } from "./paths";
 import type { Genre, Hall, Movie, Paginated, SeatType, TicketType, Venue } from "./types";
 
 export const API_URL = (import.meta.env.PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/$/, "");
+export const SHOWCASE = import.meta.env.PUBLIC_SHOWCASE === "true";
 
-async function get<T>(path: string): Promise<T> {
+export async function get<T>(path: string): Promise<T> {
   const url = path.startsWith("http") ? path : `${API_URL}${path}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`GET ${url} failed with ${res.status}. Is the backend running?`);
   return res.json() as Promise<T>;
 }
 
-async function all<T>(path: string): Promise<T[]> {
+export async function all<T>(path: string): Promise<T[]> {
   const items: T[] = [];
   let next: string | null = path;
   while (next) {
@@ -35,6 +38,8 @@ export interface Catalog {
   halls: Hall[];
   seatTypes: SeatType[];
   ticketTypes: TicketType[];
+  /** Showcase mode: slug -> poster address on the backend, copied into the build */
+  posters: Record<string, string>;
 }
 
 export function catalog(): Promise<Catalog> {
@@ -50,8 +55,17 @@ export function catalog(): Promise<Catalog> {
     ]);
     soon.sort((a, b) => (a.release_date ?? "").localeCompare(b.release_date ?? ""));
     const names = Object.fromEntries(genres.map((g) => [g.slug, g.name]));
-    const movies = [...showing, ...soon].map((m) => ({ ...m, genre_names: m.genres.map((g) => names[g] ?? g) }));
-    return { venue, movies, genres, halls, seatTypes, ticketTypes };
+    const posters: Record<string, string> = {};
+    const movies = [...showing, ...soon].map((m) => {
+      const movie = { ...m, genre_names: m.genres.map((g) => names[g] ?? g) };
+      // The published showcase cannot reach the backend: serve its generated posters from the build
+      if (SHOWCASE && m.poster.startsWith(API_URL)) {
+        posters[m.slug] = m.poster;
+        movie.poster = withBase(`/showcase/posters/${m.slug}.svg`);
+      }
+      return movie;
+    });
+    return { venue, movies, genres, halls, seatTypes, ticketTypes, posters };
   })();
   return cache;
 }

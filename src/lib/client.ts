@@ -3,10 +3,15 @@
  *
  * Tokens are kept in localStorage for simplicity. For production, consider
  * moving the refresh token to an httpOnly cookie set by the backend.
+ *
+ * Built with PUBLIC_SHOWCASE=true, requests go to an in-browser stand-in for the
+ * backend instead (src/lib/showcase.ts), so the static demo works on its own.
  */
 import type { Booking, Paginated, SeatMap, Showtime } from "./types";
 
-export const API_URL = (import.meta.env.PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/$/, "");
+const SHOWCASE = import.meta.env.PUBLIC_SHOWCASE === "true";
+// The showcase never calls the backend, so its address stays out of that build
+export const API_URL = SHOWCASE ? "" : (import.meta.env.PUBLIC_API_URL ?? "http://localhost:8000/api").replace(/\/$/, "");
 const STORAGE_KEY = "cinema.auth";
 
 interface Tokens {
@@ -61,40 +66,50 @@ export function isSignedIn(): boolean {
   return readTokens() !== null;
 }
 
+interface Reply {
+  status: number;
+  data: Record<string, unknown>;
+}
+
+/** One round trip to the backend, or to its in-browser stand-in in showcase mode. */
+async function send(path: string, method: string, body: unknown, access: string | null): Promise<Reply> {
+  if (SHOWCASE) {
+    // Loaded on demand, and left out of normal builds entirely
+    const { handle } = await import("./showcase");
+    return (await handle(method, path, body, access)) as Reply;
+  } else {
+    const res = await fetch(path.startsWith("http") ? path : `${API_URL}${path}`, {
+      method,
+      headers: {
+        Accept: "application/json",
+        ...(body !== undefined && { "Content-Type": "application/json" }),
+        ...(access && { Authorization: `Bearer ${access}` }),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    return { status: res.status, data: res.status === 204 ? {} : await res.json().catch(() => ({})) };
+  }
+}
+
 async function refreshAccess(tokens: Tokens): Promise<Tokens | null> {
-  const res = await fetch(`${API_URL}/auth/token/refresh/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh: tokens.refresh }),
-  });
-  if (!res.ok) return null;
-  const next = { ...tokens, ...(await res.json()) } as Tokens;
+  const res = await send("/auth/token/refresh/", "POST", { refresh: tokens.refresh }, null);
+  if (res.status !== 200) return null;
+  const next = { ...tokens, ...res.data } as Tokens;
   writeTokens(next);
   return next;
 }
 
 export async function api<T>(path: string, options: { method?: string; body?: unknown; auth?: boolean } = {}): Promise<T> {
-  const send = (tokens: Tokens | null) =>
-    fetch(path.startsWith("http") ? path : `${API_URL}${path}`, {
-      method: options.method ?? "GET",
-      headers: {
-        Accept: "application/json",
-        ...(options.body !== undefined && { "Content-Type": "application/json" }),
-        ...(tokens && { Authorization: `Bearer ${tokens.access}` }),
-      },
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-    });
-
+  const method = options.method ?? "GET";
   let tokens = options.auth ? readTokens() : null;
-  let res = await send(tokens);
+  let res = await send(path, method, options.body, tokens?.access ?? null);
   if (res.status === 401 && tokens) {
     tokens = await refreshAccess(tokens);
     if (!tokens) writeTokens(null);
-    else res = await send(tokens);
+    else res = await send(path, method, options.body, tokens.access);
   }
-  const data = res.status === 204 ? {} : await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError(res.status, data);
-  return data as T;
+  if (res.status < 200 || res.status >= 300) throw new ApiError(res.status, res.data);
+  return res.data as T;
 }
 
 // Accounts

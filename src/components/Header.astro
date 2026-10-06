@@ -2,6 +2,7 @@
 import Logo from "./Logo.astro";
 import Icon from "./Icon.astro";
 import type { Venue } from "../lib/types";
+import { withBase } from "../lib/paths";
 
 interface Props {
   venue: Venue;
@@ -17,21 +18,21 @@ const links = [
 
 <header class="header">
   <div class="wrap header__inner">
-    <a href="/" class="header__brand" aria-label={`${venue.name}, home`}>
+    <a href={withBase("/")} class="header__brand" aria-label={`${venue.name}, home`}>
       <Logo name={venue.name} />
     </a>
 
     <nav class="header__nav" aria-label="Main">
       {
         links.map((l) => (
-          <a href={l.href} aria-current={path.startsWith(l.href) ? "page" : undefined}>
+          <a href={withBase(l.href)} aria-current={path.startsWith(withBase(l.href)) ? "page" : undefined}>
             {l.label}
           </a>
         ))
       }
     </nav>
 
-    <a href="/account/" class="header__account" data-account-link aria-current={path.startsWith("/account") ? "page" : undefined}>
+    <a href={withBase("/account/")} class="header__account" data-account-link aria-current={path.startsWith(withBase("/account")) ? "page" : undefined}>
       <Icon name="ticket" size={18} />
       <span data-account-label>Sign in</span>
     </a>

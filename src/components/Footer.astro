@@ -1,6 +1,7 @@
 ---
 import Logo from "./Logo.astro";
 import type { Venue } from "../lib/types";
+import { withBase } from "../lib/paths";
 
 interface Props {
   venue: Venue;
@@ -23,10 +24,10 @@ const { venue } = Astro.props;
     </address>
 
     <nav class="footer__links" aria-label="Footer">
-      <a href="/programme/">What's on</a>
-      <a href="/films/">Films</a>
-      <a href="/visit/">Visit and prices</a>
-      <a href="/account/">My tickets</a>
+      <a href={withBase("/programme/")}>What's on</a>
+      <a href={withBase("/films/")}>Films</a>
+      <a href={withBase("/visit/")}>Visit and prices</a>
+      <a href={withBase("/account/")}>My tickets</a>
     </nav>
   </div>
 

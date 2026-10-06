@@ -219,6 +219,7 @@ import AuthForm from "../components/AuthForm.astro";
   import { longDate, money, time } from "../lib/format";
   import type { Booking } from "../lib/types";
   import { esc } from "../scripts/html";
+  import { withBase } from "../lib/paths";
 
   const tz = document.documentElement.dataset.tz ?? "UTC";
   const list = document.querySelector<HTMLElement>("[data-bookings]")!;
@@ -248,13 +249,13 @@ import AuthForm from "../components/AuthForm.astro";
         : "";
     const actions = [
       b.status === "pending" && new Date(b.expires_at) > new Date()
-        ? `<a class="btn btn--primary" href="/book/?booking=${b.id}">Complete payment</a>`
+        ? `<a class="btn btn--primary" href="${withBase(`/book/?booking=${b.id}`)}">Complete payment</a>`
         : "",
       b.can_cancel && b.status === "confirmed" ? `<button class="btn btn--ghost" type="button" data-cancel="${b.id}">Cancel and refund</button>` : "",
     ].join("");
     return `<article class="booking${past ? " booking--past" : ""}">
       <div>
-        <h3 class="booking__title"><a href="/films/${esc(s.movie.slug)}/">${esc(s.movie.title)}</a></h3>
+        <h3 class="booking__title"><a href="${withBase(`/films/${esc(s.movie.slug)}/`)}">${esc(s.movie.title)}</a></h3>
         <p class="booking__when">${esc(longDate(s.starts_at, tz))}, ${time(s.starts_at, tz)}. ${esc(s.hall.name)}. Seats ${esc(
           b.seats.map((x) => x.seat).join(", "),
         )}.</p>
@@ -279,7 +280,7 @@ import AuthForm from "../components/AuthForm.astro";
 
     list.innerHTML = upcoming.length
       ? `<h2 class="bookings__group">Coming up</h2>${upcoming.map((b) => card(b, false)).join("")}`
-      : `<div class="bookings__empty"><p>No upcoming bookings.</p><a class="btn btn--primary" href="/programme/">See what's on</a></div>`;
+      : `<div class="bookings__empty"><p>No upcoming bookings.</p><a class="btn btn--primary" href="${withBase("/programme/")}">See what's on</a></div>`;
     if (past.length) list.innerHTML += `<h2 class="bookings__group">Past and cancelled</h2>${past.map((b) => card(b, true)).join("")}`;
   }
 

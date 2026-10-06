@@ -1,6 +1,7 @@
 ---
 import type { Movie } from "../lib/types";
 import { releaseDate, runtime } from "../lib/format";
+import { withBase } from "../lib/paths";
 
 interface Props {
   movie: Movie;
@@ -11,7 +12,7 @@ const meta =
   movie.status === "coming_soon" ? `From ${releaseDate(movie.release_date)}` : [runtime(movie.runtime_minutes), movie.genre_names[0]].filter(Boolean).join("  /  ");
 ---
 
-<a class="poster-card" href={`/films/${movie.slug}/`} data-reveal style={`--i: ${index % 6}`} data-genres={movie.genres.join(" ")}>
+<a class="poster-card" href={withBase(`/films/${movie.slug}/`)} data-reveal style={`--i: ${index % 6}`} data-genres={movie.genres.join(" ")}>
   <span class="poster-card__img">
     <img src={movie.poster} alt="" loading="lazy" width="300" height="450" />
   </span>

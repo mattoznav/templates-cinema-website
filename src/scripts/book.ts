@@ -15,6 +15,7 @@ import {
 import { audio, longDate, money, time } from "../lib/format";
 import type { Booking, SeatMap } from "../lib/types";
 import { esc } from "./html";
+import { withBase } from "../lib/paths";
 
 const MAX_SEATS = 10;
 const CONFIRM_TIMEOUT_MS = 45_000;
@@ -55,7 +56,7 @@ function message(selector: string, text: string | null) {
 function renderHead(m: SeatMap) {
   const s = m.showtime;
   $("[data-head]").innerHTML = `
-    <a class="book__back" href="/films/${esc(s.movie)}/">${icon(backIcon, 16)} Back to the film</a>
+    <a class="book__back" href="${withBase(`/films/${esc(s.movie)}/`)}">${icon(backIcon, 16)} Back to the film</a>
     <h1 class="book__title">${esc(s.movie_title)}</h1>
     <p class="book__when">${esc(longDate(s.starts_at, tz()))}, ${time(s.starts_at, tz())}. ${esc(s.hall_name)}${
       s.hall_format !== "Standard" ? ` (${esc(s.hall_format)})` : ""
@@ -180,7 +181,7 @@ function startCountdown(expiresAt: string) {
       window.clearInterval(countdown);
       fail("Time is up", "Your seats were released because the payment was not completed in time. Pick your seats again to book.");
       const again = document.querySelector<HTMLAnchorElement>('[data-step="error"] a');
-      if (again && booking) again.href = `/book/?showtime=${booking.showtime.id}`;
+      if (again && booking) again.href = withBase(`/book/?showtime=${booking.showtime.id}`);
       if (again) again.textContent = "Pick seats again";
     }
   };
